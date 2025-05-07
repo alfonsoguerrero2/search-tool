@@ -39,8 +39,11 @@ def crawl(url, visited, depth, inverted_index, url_to_id, id_to_url, DELAY=6):
     links = soup.find_all('a')
     base_domain = urlparse(url).netloc
 
-    for word in words:
-        inverted_index[word][url_id] += 1
+    for position, word in enumerate(words):
+        if len(word) > 2: 
+            inverted_index[word][url_id]["count"] += 1
+            inverted_index[word][url_id]["positions"].append(position)
+        
     
     for link in links:
         href = link.get('href')
@@ -57,11 +60,13 @@ def crawl(url, visited, depth, inverted_index, url_to_id, id_to_url, DELAY=6):
 def build(url):
     visited = set()  # global set to prevent revisiting
     DELAY = 6 
-    inverted_index = defaultdict(lambda: defaultdict(int))
+    inverted_index = defaultdict(lambda: defaultdict(lambda: {"count": 0, "positions": []}))
+# e.g. {"life": {0: {"count": 3, "positions": [5, 12, 29]}}}
+   
     url_to_id = {}
     id_to_url = {}
     inverted_index, url_to_id, id_to_url = crawl(url, visited, 10, inverted_index, url_to_id, id_to_url, DELAY)
-    return inverted_index, id_to_url
+    return inverted_index, url_to_id, id_to_url
     #terms = list(set(tokens1 + tokens2))
 
 def save_inverted_index_only(inverted_index, filename="inverted_index.json"):
@@ -74,16 +79,39 @@ def save_inverted_index_only(inverted_index, filename="inverted_index.json"):
     print(f"Inverted index (only) saved to {filename}")
 
 
+def load_inverted_index(filename="inverted_index.json"):
+    with open(filename, "r", encoding="utf-8") as f:
+        inverted_index = json.load(f)
+        return inverted_index
+    # Convert back to defaultdict for easier manipulation
+
+
+def save_url_to_id_mapping(url_to_id, filename="url_to_id.json"):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(url_to_id, f, indent=2)
+    print(f"URL to ID mapping saved to {filename}")
+
+def save_id_to_url_mapping(id_to_url, filename="id_to_url.json"):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(id_to_url, f, indent=2)
+    print(f"ID to URL mapping saved to {filename}")
+
+def load_mappings(filename1="url_to_id.json", filename2="id_to_url.json"):
+    with open(filename1, "r", encoding="utf-8") as f:
+        url_to_id = json.load(f)
+    with open(filename2, "r", encoding="utf-8") as f:
+        id_to_url = json.load(f)
+    return url_to_id, id_to_url
+    
+
+
 import pprint
-
-
 # Entry Point
 # -------------------------------
 if __name__ == "__main__":
     BASE_URL = "https://quotes.toscrape.com/"
     print("\n Student API Command Line Tool")
     inverted_index = None
-    id_to_url = None
     while True:
         prompt =  "> "
         command = input(prompt).strip().split()
@@ -93,11 +121,23 @@ if __name__ == "__main__":
         
 
         if command[0] == "build" and len(command) == 1:
-            inverted_index, id_to_url = build(BASE_URL)
+            inverted_index, url_to_id, id_to_url = build(BASE_URL)
             print("Inverted index built!")
             pprint.pprint(dict(inverted_index))
+
             save_inverted_index_only(inverted_index)
+            print("URL to ID mapping:")
+            pprint.pprint(url_to_id)
+            save_url_to_id_mapping(url_to_id)
+
+
+            print("ID to URL mapping:")
+            pprint.pprint(id_to_url)
+            save_id_to_url_mapping(id_to_url)
         elif command[0] == "load" and len(command) == 2:
+            inverted_index = load_inverted_index()
+            url_to_id, id_to_url = load_mappings()
+            print("Mappings loaded!")
             continue
 
     
