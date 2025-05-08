@@ -132,7 +132,10 @@ def ranking(list_of_words,url_to_id, id_to_url, inverted_index):
             ids_of_words.append(word_ids)
             valid_words.append(word)
         else:
-            print(f"'{word}' not found in index. Skipped.")
+            if len(word) < 3:
+                print(f"'{word}' skipped because it is too short.") 
+            else: 
+                print(f"'{word}'was not found in index. Skipped.")
 
     num_words = len(valid_words)
     url_id_count = defaultdict(int)
@@ -191,6 +194,12 @@ def ranking(list_of_words,url_to_id, id_to_url, inverted_index):
 def output_results(result, url_to_id, id_to_url):
     # Print the results in a readable format
     for label, pages in result.items():
+        
+        if not pages:
+            if label != "exact matches" and label.startswith("1/") or label.startswith("2/"):
+                continue
+            print(f"\n{label}:\nNo matches.")
+            continue
         print(f"\n{label}:")
         sorted_pages = sorted(pages, key=lambda x: x[1], reverse=True)
         for page in sorted_pages:
@@ -210,7 +219,7 @@ import pprint
 # Entry Point
 if __name__ == "__main__":
     BASE_URL = "https://quotes.toscrape.com/"
-    print("\n Student API Command Line Tool")
+    print("\n search Command Line Tool")
     inverted_index = None
     url_to_id, id_to_url = None, None
     while True:
@@ -218,7 +227,8 @@ if __name__ == "__main__":
         command = input(prompt).strip().split()
 
         if len(command) == 0:
-            continue  # ignore empty inputs
+            print("No command entered. Please try again.")
+            continue
         
 
         if command[0] == "build" and len(command) == 1:
@@ -258,17 +268,26 @@ if __name__ == "__main__":
 
 
         elif command[0] == "find":
-            if len(command) < 1:
-                print("Please provide a phrase or words to search for.")  
-            else:    
-                if inverted_index is not None and url_to_id is not None and id_to_url is not None:
-                    list_of_words = command[1:]
-                    results = ranking(list_of_words,url_to_id, id_to_url, inverted_index)
-                    output_results(results, url_to_id, id_to_url)
+            if inverted_index is not None and url_to_id is not None:
+                if len(command) < 1:
+                    print("Please provide a phrase or words to search for.")  
+                else:    
+                    if inverted_index is not None and url_to_id is not None and id_to_url is not None:
+                        list_of_words = command[1:]
+                        results = ranking(list_of_words,url_to_id, id_to_url, inverted_index)
+                        if all(len(pages) == 0 for pages in results.values()):
+                            print("No results found.")
+                            
+                        else:
+                            output_results(results, url_to_id, id_to_url)
+            else:
+                print("Inverted index or mappings not loaded. Please build or load them first.")
 
 
   
         elif command[0] == "exit":
             print("Exiting...")
             break
-    
+        
+        else:
+            print("Invalid command. Please try again.")

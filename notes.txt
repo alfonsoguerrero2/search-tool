@@ -1,3 +1,0 @@
-stored the indexes convertions in a json file too
-include url to indexe
-add position to the inverted index 
