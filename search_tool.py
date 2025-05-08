@@ -173,7 +173,6 @@ def ranking(list_of_words,url_to_id, id_to_url, inverted_index):
                     page.append(url_id)
                     page.append(0)
                     result["exact matches"].append(page)
-                    print(f"Exact phrase match found in URL ID {url_id}")
                     continue
                 else:
                     page.append(url_id)
@@ -189,9 +188,26 @@ def ranking(list_of_words,url_to_id, id_to_url, inverted_index):
 
     return result
 
+def output_results(result, url_to_id, id_to_url):
+    # Print the results in a readable format
+    for label, pages in result.items():
+        print(f"\n{label}:")
+        sorted_pages = sorted(pages, key=lambda x: x[1], reverse=True)
+        for page in sorted_pages:
+            url_id = page[0]
+            count = page[1]
+            if url_id in id_to_url and label != "exact matches":
+                print(f"URL: {id_to_url[url_id]}, Frequency: {count}")
+            elif url_id in id_to_url and label == "exact matches":
+                print(f"Exact match URL: {id_to_url[url_id]} ")
+            else:
+                print(f"URL ID {url_id} not found in mapping.")
+
+    return
+
+
 import pprint
 # Entry Point
-# -------------------------------
 if __name__ == "__main__":
     BASE_URL = "https://quotes.toscrape.com/"
     print("\n Student API Command Line Tool")
@@ -219,12 +235,14 @@ if __name__ == "__main__":
             print("ID to URL mapping:")
             pprint.pprint(id_to_url)
             save_id_to_url_mapping(id_to_url)
+
         elif command[0] == "load" and len(command) == 1:
             inverted_index = load_inverted_index()
             url_to_id, id_to_url = load_mappings()
             print("Inverted index loaded!")
             print("Mappings loaded!")
             continue
+
         elif command[0] == "print" and len(command) == 2:
             if inverted_index is not None and url_to_id is not None:
                 word = command[1]
@@ -245,7 +263,8 @@ if __name__ == "__main__":
             else:    
                 if inverted_index is not None and url_to_id is not None and id_to_url is not None:
                     list_of_words = command[1:]
-                    print(ranking(list_of_words,url_to_id, id_to_url, inverted_index))
+                    results = ranking(list_of_words,url_to_id, id_to_url, inverted_index)
+                    output_results(results, url_to_id, id_to_url)
 
 
   
